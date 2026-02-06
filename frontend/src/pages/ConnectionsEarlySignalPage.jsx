@@ -209,7 +209,7 @@ const EarlySignalFiltersBar = ({ filters, onChange }) => {
 // RADAR VIEW (SCATTER PLOT)
 // ============================================================
 
-const EarlySignalRadar = ({ data, onSelect, selectedId }) => {
+const EarlySignalRadar = ({ data, onSelect, selectedId, compareSelection = [] }) => {
   // Radar dimensions
   const WIDTH = 800;
   const HEIGHT = 500;
@@ -217,6 +217,9 @@ const EarlySignalRadar = ({ data, onSelect, selectedId }) => {
   
   const innerWidth = WIDTH - PADDING.left - PADDING.right;
   const innerHeight = HEIGHT - PADDING.top - PADDING.bottom;
+
+  // Hover state - separate from selection
+  const [hoveredId, setHoveredId] = useState(null);
 
   // Scale functions
   const xScale = useCallback((accel) => {
