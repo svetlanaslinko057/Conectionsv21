@@ -11,6 +11,7 @@
 8. [Quick Start — Быстрый запуск](#8-quick-start--быстрый-запуск)
 9. [Конфигурация](#9-конфигурация)
 10. [Troubleshooting](#10-troubleshooting)
+11. [Telegram Notifications (Phase 2.3)](#11-telegram-notifications-phase-23)
 
 ---
 
