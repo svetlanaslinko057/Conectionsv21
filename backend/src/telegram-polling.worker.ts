@@ -413,6 +413,172 @@ Type /connections on to re-enable anytime.`,
         );
       }
     }
+    // Handle /alerts - Unified alerts menu
+    else if (text === '/alerts') {
+      const connection = await telegramService.TelegramConnectionModel.findOne({ chatId });
+      
+      if (!connection?.isActive) {
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `❌ <b>Not Connected</b>
+
+Link your account first to manage alerts.
+Type /start for instructions.`,
+          { parseMode: 'HTML' }
+        );
+      } else {
+        const connPrefs = connection.connectionsPreferences || { enabled: true };
+        const twitterPrefs = connection.eventPreferences || { 
+          sessionOk: true, sessionStale: true, sessionInvalid: true,
+          parseCompleted: false, parseAborted: true, cooldown: false, highRisk: false 
+        };
+        
+        // Calculate Twitter status
+        const twitterEnabled = twitterPrefs.sessionOk || twitterPrefs.sessionStale || 
+                               twitterPrefs.sessionInvalid || twitterPrefs.parseAborted;
+        
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `⚙️ <b>Alert Settings</b>
+
+<b>📊 Connections (Influencer)</b>
+Status: ${connPrefs.enabled ? '🟢 ON' : '🔴 OFF'}
+• Early Breakout, Acceleration, Reversal
+→ /connections on|off
+
+<b>🐦 Twitter / Parser</b>
+Status: ${twitterEnabled ? '🟢 ON' : '🔴 OFF'}
+• Session alerts: ${twitterPrefs.sessionOk ? '✅' : '❌'}
+• Parse alerts: ${twitterPrefs.parseAborted ? '✅' : '❌'}
+→ /twitter on|off
+
+<b>Quick actions:</b>
+/connections off - Mute influencer alerts
+/twitter off - Mute twitter alerts
+/disconnect - Stop ALL alerts
+
+🌐 Fine-tune settings on the website.`,
+          { parseMode: 'HTML' }
+        );
+      }
+    }
+    // Handle /twitter - Show Twitter alerts status
+    else if (text === '/twitter') {
+      const connection = await telegramService.TelegramConnectionModel.findOne({ chatId });
+      
+      if (!connection?.isActive) {
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `❌ <b>Not Connected</b>
+
+Link your account first. Type /start for instructions.`,
+          { parseMode: 'HTML' }
+        );
+      } else {
+        const prefs = connection.eventPreferences || { 
+          sessionOk: true, sessionStale: true, sessionInvalid: true,
+          parseCompleted: false, parseAborted: true, cooldown: false, highRisk: false 
+        };
+        
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `🐦 <b>Twitter / Parser Alerts</b>
+
+<b>Session alerts:</b>
+• Session OK: ${prefs.sessionOk ? '✅' : '❌'}
+• Session Stale: ${prefs.sessionStale ? '✅' : '❌'}
+• Session Invalid: ${prefs.sessionInvalid ? '✅' : '❌'}
+
+<b>Parser alerts:</b>
+• Parse Completed: ${prefs.parseCompleted ? '✅' : '❌'}
+• Parse Aborted: ${prefs.parseAborted ? '✅' : '❌'}
+
+<b>Other:</b>
+• Cooldown: ${prefs.cooldown ? '✅' : '❌'}
+• High Risk: ${prefs.highRisk ? '✅' : '❌'}
+
+<b>Commands:</b>
+/twitter on - Enable all
+/twitter off - Disable all
+
+🌐 Fine-tune on the website.`,
+          { parseMode: 'HTML' }
+        );
+      }
+    }
+    // Handle /twitter on - Enable Twitter alerts
+    else if (text === '/twitter on') {
+      const result = await telegramService.TelegramConnectionModel.updateOne(
+        { chatId, isActive: true },
+        { 
+          $set: { 
+            'eventPreferences.sessionOk': true,
+            'eventPreferences.sessionStale': true,
+            'eventPreferences.sessionInvalid': true,
+            'eventPreferences.parseAborted': true,
+          } 
+        }
+      );
+      
+      if (result.matchedCount === 0) {
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `❌ <b>Not Connected</b>
+
+Link your account first. Type /start for instructions.`,
+          { parseMode: 'HTML' }
+        );
+      } else {
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `✅ <b>Twitter Alerts Enabled</b>
+
+You will now receive:
+• 🟢 Session status alerts
+• ⚠️ Parse abort alerts
+
+Type /twitter off to disable.`,
+          { parseMode: 'HTML' }
+        );
+      }
+    }
+    // Handle /twitter off - Disable Twitter alerts
+    else if (text === '/twitter off') {
+      const result = await telegramService.TelegramConnectionModel.updateOne(
+        { chatId, isActive: true },
+        { 
+          $set: { 
+            'eventPreferences.sessionOk': false,
+            'eventPreferences.sessionStale': false,
+            'eventPreferences.sessionInvalid': false,
+            'eventPreferences.parseCompleted': false,
+            'eventPreferences.parseAborted': false,
+            'eventPreferences.cooldown': false,
+            'eventPreferences.highRisk': false,
+          } 
+        }
+      );
+      
+      if (result.matchedCount === 0) {
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `❌ <b>Not Connected</b>
+
+Link your account first. Type /start for instructions.`,
+          { parseMode: 'HTML' }
+        );
+      } else {
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `🔇 <b>Twitter Alerts Disabled</b>
+
+You will no longer receive Twitter/parser alerts.
+
+Type /twitter on to re-enable anytime.`,
+          { parseMode: 'HTML' }
+        );
+      }
+    }
   } catch (error) {
     console.error('[TG Polling] Error processing update:', error);
   }
