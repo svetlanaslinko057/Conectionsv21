@@ -1373,8 +1373,8 @@ export default function AdminConnectionsPage() {
         </div>
       </div>
 
-      {/* Tabs - Sticky */}
-      <div className="bg-white border-b border-gray-200 sticky top-[73px] z-30">
+      {/* Tabs */}
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-1">
             {tabs.map(tab => (
