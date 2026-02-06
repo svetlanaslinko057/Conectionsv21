@@ -1,5 +1,11 @@
 # Connections Module - PRD
 
+## Documentation
+
+- **Full Documentation**: `/app/docs/CONNECTIONS_MODULE.md`
+- **Quick Start Guide**: `/app/docs/QUICK_START.md`
+- **Product Concept**: `/app/docs/CONCEPT.md`
+
 ## Original Problem Statement
 Развернуть изолированный модуль "Connections" для формирования справедливого рейтинга инфлюенсеров в Twitter. Модуль должен быть изолирован и не влиять на другие сущности системы.
 
