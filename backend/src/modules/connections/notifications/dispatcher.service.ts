@@ -236,7 +236,7 @@ export class ConnectionsTelegramDispatcher {
 
   /**
    * Send test message (for Admin UI)
-   * Sends to admin channel OR first active subscriber
+   * Sends to ALL active subscribers + admin channel
    */
   async sendTestMessage(): Promise<{ ok: boolean; message?: string }> {
     const settings = await this.settingsStore.get();
@@ -249,21 +249,19 @@ export class ConnectionsTelegramDispatcher {
       throw new Error('Preview-only mode is enabled. Disable it to send messages.');
     }
 
-    // Determine where to send test
-    let targetChatId = settings.chat_id;
-    let targetDescription = 'admin channel';
+    // Get all subscribers
+    const subscribers = await this.getActiveSubscribers();
     
-    if (!targetChatId) {
-      // Try to find first active subscriber
-      const subscribers = await this.getActiveSubscribers('TEST');
-      if (subscribers.length > 0) {
-        targetChatId = subscribers[0].chatId;
-        targetDescription = `subscriber ${subscribers[0].userId}`;
+    // Add admin channel if set
+    if (settings.chat_id) {
+      const hasAdminChannel = subscribers.some(s => s.chatId === settings.chat_id);
+      if (!hasAdminChannel) {
+        subscribers.push({ chatId: settings.chat_id, userId: 'admin_channel' });
       }
     }
 
-    if (!targetChatId) {
-      throw new Error('No chat ID configured and no active subscribers found.');
+    if (subscribers.length === 0) {
+      throw new Error('No active subscribers. Users need to /start the bot first.');
     }
 
     const testEvent: ConnectionsAlertEvent = {
@@ -275,14 +273,33 @@ export class ConnectionsTelegramDispatcher {
     };
 
     const text = formatTelegramMessage(this.publicBaseUrl, testEvent);
-    await this.telegram.sendMessage(targetChatId, text);
+    
+    // Send to all subscribers
+    let sentCount = 0;
+    let errors: string[] = [];
+    
+    for (const subscriber of subscribers) {
+      try {
+        await this.telegram.sendMessage(subscriber.chatId, text);
+        sentCount++;
+      } catch (err: any) {
+        errors.push(`${subscriber.userId}: ${err?.message}`);
+      }
+    }
 
     // Record test delivery
     testEvent.delivery_status = 'SENT';
     testEvent.sent_at = new Date().toISOString();
     await this.deliveryStore.record(testEvent);
 
-    return { ok: true, message: `Test message sent to ${targetDescription}` };
+    if (sentCount === 0) {
+      throw new Error(`All sends failed: ${errors.join('; ')}`);
+    }
+
+    return { 
+      ok: true, 
+      message: `Test sent to ${sentCount}/${subscribers.length} subscribers` 
+    };
   }
 
   // ============================================================
