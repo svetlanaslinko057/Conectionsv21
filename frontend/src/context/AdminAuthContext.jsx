@@ -85,6 +85,7 @@ export function AdminAuthProvider({ children }) {
     <AdminAuthContext.Provider
       value={{
         user,
+        token,
         loading,
         error,
         login,
