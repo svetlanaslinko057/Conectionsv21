@@ -307,6 +307,41 @@ export const ADMIN_NAV = [
           },
         ],
       },
+      // ═══════════════════════════════════════════════════════════════
+      // CONNECTIONS MODULE - Influencer rating & early signals
+      // ═══════════════════════════════════════════════════════════════
+      {
+        id: 'connections-module',
+        label: 'Connections Module',
+        icon: Link2,
+        badge: 'ACTIVE',
+        children: [
+          { 
+            id: 'connections-overview',
+            label: 'Overview', 
+            path: '/admin/connections',
+            icon: Activity,
+          },
+          { 
+            id: 'connections-config',
+            label: 'Configuration', 
+            path: '/admin/connections?tab=config',
+            icon: Settings,
+          },
+          { 
+            id: 'connections-stability',
+            label: 'Stability', 
+            path: '/admin/connections?tab=stability',
+            icon: Gauge,
+          },
+          { 
+            id: 'connections-alerts',
+            label: 'Alerts Engine', 
+            path: '/admin/connections?tab=alerts',
+            icon: Bell,
+          },
+        ],
+      },
       // Future modules (disabled/placeholder)
       {
         id: 'reddit-module',
