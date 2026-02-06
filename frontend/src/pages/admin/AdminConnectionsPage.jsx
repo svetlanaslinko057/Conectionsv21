@@ -1885,6 +1885,11 @@ export default function AdminConnectionsPage() {
             <AlertsTab token={token} />
           </TabErrorBoundary>
         )}
+        {activeTab === 'telegram' && (
+          <TabErrorBoundary tabName="Telegram">
+            <TelegramTab token={token} />
+          </TabErrorBoundary>
+        )}
       </div>
     </div>
     </AdminLayout>
