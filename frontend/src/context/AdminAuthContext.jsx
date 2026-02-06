@@ -17,14 +17,15 @@ const AdminAuthContext = createContext(null);
 
 export function AdminAuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => getAdminToken());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Check if already authenticated on mount
   useEffect(() => {
     async function checkAuth() {
-      const token = getAdminToken();
-      if (!token) {
+      const savedToken = getAdminToken();
+      if (!savedToken) {
         setLoading(false);
         return;
       }
@@ -37,9 +38,11 @@ export function AdminAuthProvider({ children }) {
             userId: result.data.userId,
             expiresAt: result.data.expiresAtTs,
           });
+          setToken(savedToken);
         }
       } catch (err) {
         console.log('[AdminAuth] No valid session');
+        setToken(null);
       } finally {
         setLoading(false);
       }
