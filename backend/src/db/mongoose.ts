@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import type { Db } from 'mongodb';
 import { env } from '../config/env.js';
 
 export async function connectMongo(): Promise<void> {
@@ -23,6 +24,17 @@ export async function connectMongo(): Promise<void> {
 
 export async function disconnectMongo(): Promise<void> {
   await mongoose.disconnect();
+}
+
+/**
+ * Get native MongoDB Db instance for raw operations
+ */
+export function getMongoDb(): Db {
+  const connection = mongoose.connection;
+  if (!connection || connection.readyState !== 1) {
+    throw new Error('MongoDB not connected');
+  }
+  return connection.db as Db;
 }
 
 export { mongoose };
