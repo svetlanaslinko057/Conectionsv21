@@ -1007,6 +1007,23 @@ const AlertsTab = ({ token }) => {
     <div className="space-y-6">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
+      {/* P2.1: Run Batch Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+        <div>
+          <h3 className="font-medium text-blue-900">Alerts Engine (Preview Mode)</h3>
+          <p className="text-sm text-blue-700">Run batch to detect EARLY_BREAKOUT, STRONG_ACCELERATION, TREND_REVERSAL events.</p>
+        </div>
+        <Button 
+          onClick={runAlertsBatch} 
+          disabled={runningBatch}
+          data-testid="run-alerts-batch-btn"
+          className="bg-blue-500 hover:bg-blue-600"
+        >
+          {runningBatch ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+          Run Alerts Batch
+        </Button>
+      </div>
+
       {/* Summary */}
       <SectionCard title="Alerts Summary" icon={Bell}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
