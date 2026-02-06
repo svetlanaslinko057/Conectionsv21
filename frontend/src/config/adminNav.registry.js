@@ -340,6 +340,13 @@ export const ADMIN_NAV = [
             path: '/admin/connections?tab=alerts',
             icon: Bell,
           },
+          { 
+            id: 'connections-telegram',
+            label: 'Telegram Delivery', 
+            path: '/admin/connections?tab=telegram',
+            icon: MessageSquare,
+            badge: 'NEW',
+          },
         ],
       },
       // Future modules (disabled/placeholder)
