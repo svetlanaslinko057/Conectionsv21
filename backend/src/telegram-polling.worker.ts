@@ -299,6 +299,107 @@ Type /start to reconnect anytime.`,
         { parseMode: 'HTML' }
       );
     }
+    // Handle /connections - Show Connections alerts status
+    else if (text === '/connections') {
+      const connection = await telegramService.TelegramConnectionModel.findOne({ chatId });
+      
+      if (!connection?.isActive) {
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `❌ <b>Not Connected</b>
+
+Link your account first to manage Connections alerts.
+Type /start for instructions.`,
+          { parseMode: 'HTML' }
+        );
+      } else {
+        const prefs = connection.connectionsPreferences || { enabled: true, earlyBreakout: true, strongAcceleration: true, trendReversal: true };
+        const status = prefs.enabled ? '🟢 ON' : '🔴 OFF';
+        
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `📊 <b>Connections Alerts</b>
+
+Status: ${status}
+
+<b>Alert Types:</b>
+• Early Breakout: ${prefs.earlyBreakout ? '✅' : '❌'}
+• Strong Acceleration: ${prefs.strongAcceleration ? '✅' : '❌'}
+• Trend Reversal: ${prefs.trendReversal ? '✅' : '❌'}
+
+<b>Commands:</b>
+/connections on - Enable all
+/connections off - Disable all
+
+Manage individual types on the website.`,
+          { parseMode: 'HTML' }
+        );
+      }
+    }
+    // Handle /connections on - Enable Connections alerts
+    else if (text === '/connections on') {
+      const result = await telegramService.TelegramConnectionModel.updateOne(
+        { chatId, isActive: true },
+        { 
+          $set: { 
+            'connectionsPreferences.enabled': true,
+            'connectionsPreferences.earlyBreakout': true,
+            'connectionsPreferences.strongAcceleration': true,
+            'connectionsPreferences.trendReversal': true,
+          } 
+        }
+      );
+      
+      if (result.matchedCount === 0) {
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `❌ <b>Not Connected</b>
+
+Link your account first. Type /start for instructions.`,
+          { parseMode: 'HTML' }
+        );
+      } else {
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `✅ <b>Connections Alerts Enabled</b>
+
+You will now receive influencer alerts:
+• 🚀 Early Breakout
+• 📈 Strong Acceleration
+• 🔄 Trend Reversal
+
+Type /connections off to disable.`,
+          { parseMode: 'HTML' }
+        );
+      }
+    }
+    // Handle /connections off - Disable Connections alerts
+    else if (text === '/connections off') {
+      const result = await telegramService.TelegramConnectionModel.updateOne(
+        { chatId, isActive: true },
+        { $set: { 'connectionsPreferences.enabled': false } }
+      );
+      
+      if (result.matchedCount === 0) {
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `❌ <b>Not Connected</b>
+
+Link your account first. Type /start for instructions.`,
+          { parseMode: 'HTML' }
+        );
+      } else {
+        await telegramService.sendTelegramMessage(
+          chatId,
+          `🔇 <b>Connections Alerts Disabled</b>
+
+You will no longer receive influencer alerts.
+
+Type /connections on to re-enable anytime.`,
+          { parseMode: 'HTML' }
+        );
+      }
+    }
   } catch (error) {
     console.error('[TG Polling] Error processing update:', error);
   }
