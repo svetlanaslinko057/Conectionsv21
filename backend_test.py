@@ -11,8 +11,8 @@ import sys
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 
-# Use localhost since external preview is unavailable
-BACKEND_URL = "http://localhost:8001"
+# Use production URL from frontend .env
+BACKEND_URL = "https://svetlana-connect.preview.emergentagent.com"
 
 class P22BackendTester:
     def __init__(self):
