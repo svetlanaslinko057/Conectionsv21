@@ -40,7 +40,8 @@ import {
   ChevronUp,
   Info,
   Filter,
-  X
+  X,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useAdminAuth } from '../../context/AdminAuthContext';
