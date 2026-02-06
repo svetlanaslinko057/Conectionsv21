@@ -149,7 +149,7 @@ export async function adminConnectionsRoutes(app: FastifyInstance): Promise<void
    * GET /admin/connections/config
    * Get current configuration (read-only view)
    */
-  app.get('/config', async (req: FastifyRequest, reply: FastifyReply) => {
+  app.get('/config', async (_req: FastifyRequest, reply: FastifyReply) => {
     // Import actual configs
     const { ConnectionsTrendConfig } = await import('../../modules/connections/core/scoring/connections-trend-config.js');
     const { EarlySignalConfig } = await import('../../modules/connections/core/scoring/early-signal-config.js');
