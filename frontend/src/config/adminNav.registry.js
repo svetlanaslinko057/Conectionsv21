@@ -42,6 +42,8 @@ import {
   Radio,
   Newspaper,
   MessageCircle,
+  Link2,
+  Bell,
 } from 'lucide-react';
 
 /**
