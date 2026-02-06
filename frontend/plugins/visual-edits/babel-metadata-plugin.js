@@ -213,14 +213,7 @@ function fileExportHasPortals({
 
   let found = false;
 
-  // Track visited paths to prevent infinite recursion with circular component dependencies
-  const visitedPaths = new WeakSet();
-
   function subtreeHasPortals(nodePath) {
-    if (!nodePath || !nodePath.node) return false;
-    if (visitedPaths.has(nodePath.node)) return false;
-    visitedPaths.add(nodePath.node);
-
     let hit = false;
     nodePath.traverse({
       JSXOpeningElement(op) {
@@ -616,7 +609,7 @@ const babelMetadataPlugin = ({ types: t }) => {
   /**
    * Analyzes a member expression like item.name or obj.prop.value
    */
-  function analyzeMemberExpression(exprPath, state, options = {}) {
+  function analyzeMemberExpression(exprPath, state) {
     const node = exprPath.node;
 
     // Build the property path (e.g., "name" or "address.city")
@@ -634,10 +627,7 @@ const babelMetadataPlugin = ({ types: t }) => {
       const rootName = rootObj.name;
 
       // Check if we're inside an array iteration (like .map())
-      // Skip if we're already analyzing the array source to prevent infinite recursion
-      const arrayContext = options.skipArrayContext
-        ? null
-        : getArrayIterationContext(exprPath, state);
+      const arrayContext = getArrayIterationContext(exprPath, state);
 
       if (arrayContext && arrayContext.itemParam === rootName) {
         // This is item.property where item comes from array.map(item => ...)
@@ -655,8 +645,7 @@ const babelMetadataPlugin = ({ types: t }) => {
       }
 
       // Analyze the root identifier
-      // Pass skipArrayContext to avoid infinite recursion when called from getArrayIterationContext
-      const rootInfo = analyzeIdentifier(rootName, exprPath, state, options);
+      const rootInfo = analyzeIdentifier(rootName, exprPath, state);
       if (rootInfo) {
         return {
           ...rootInfo,
@@ -983,8 +972,7 @@ const babelMetadataPlugin = ({ types: t }) => {
       // Handle cases like data.items.map(...)
       const memberInfo = analyzeMemberExpression(
         callExprParent.get("callee.object"),
-        state,
-        { skipArrayContext: true }
+        state
       );
       if (memberInfo) {
         arrayVar = memberInfo.varName;
@@ -1452,10 +1440,6 @@ const babelMetadataPlugin = ({ types: t }) => {
     if (DYNAMIC_COMP_CACHE.has(cacheKey)) {
       return DYNAMIC_COMP_CACHE.get(cacheKey);
     }
-
-    // Set sentinel value to prevent infinite recursion with circular imports
-    // This will be updated with the actual result at the end
-    DYNAMIC_COMP_CACHE.set(cacheKey, false);
 
     const ast = parseFileAst(absPath, parser);
     if (!ast) {
