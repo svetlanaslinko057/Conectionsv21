@@ -2,12 +2,17 @@
  * Minimal App - Only Connections module + Admin auth
  * 
  * This is a simplified version for development.
+ * Phase 2.3: Added Telegram Notifications
  */
 
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import { env } from './config/env.js';
 import { AppError } from './common/errors.js';
+import { getMongoDb } from './db/mongoose.js';
+import { TelegramTransport } from './modules/connections/notifications/telegram.transport.js';
+import { ConnectionsTelegramDispatcher } from './modules/connections/notifications/dispatcher.service.js';
+import { registerConnectionsTelegramAdminRoutes } from './modules/connections/notifications/admin.routes.js';
 
 export function buildMinimalApp(): FastifyInstance {
   const app = Fastify({
