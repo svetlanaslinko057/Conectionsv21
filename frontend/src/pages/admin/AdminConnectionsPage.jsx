@@ -1436,5 +1436,6 @@ export default function AdminConnectionsPage() {
         )}
       </div>
     </div>
+    </AdminLayout>
   );
 }
