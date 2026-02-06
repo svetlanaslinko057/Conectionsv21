@@ -24,7 +24,7 @@ export interface ITelegramConnection extends Document {
   // P1 Deep-Link fields
   pendingLinkToken?: string;
   pendingLinkExpires?: Date;
-  // B.2.3 - Event Preferences
+  // B.2.3 - Event Preferences (Twitter)
   eventPreferences?: {
     sessionOk: boolean;
     sessionStale: boolean;
@@ -33,6 +33,13 @@ export interface ITelegramConnection extends Document {
     parseAborted: boolean;
     cooldown: boolean;
     highRisk: boolean;
+  };
+  // Phase 2.3 - Connections Preferences (Influencer alerts)
+  connectionsPreferences?: {
+    enabled: boolean;           // Global on/off for Connections alerts
+    earlyBreakout: boolean;     // EARLY_BREAKOUT alerts
+    strongAcceleration: boolean; // STRONG_ACCELERATION alerts  
+    trendReversal: boolean;     // TREND_REVERSAL alerts
   };
 }
 
