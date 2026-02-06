@@ -190,8 +190,8 @@ export class ConnectionsTelegramDispatcher {
         continue;
       }
 
-      // Get all subscribers who want this alert type
-      const subscribers = await this.getActiveSubscribers(type);
+      // Get all subscribers (MVP: everyone who /start and didn't /connections off)
+      const subscribers = await this.getActiveSubscribers();
       
       // Also add admin channel if configured
       if (settings.chat_id) {
