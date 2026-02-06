@@ -226,22 +226,20 @@ Something went wrong. Please try again later.`,
         chatId,
         `📖 <b>Available Commands</b>
 
-/start - Welcome message & setup guide
-/link FOMO-XXXX - Link your account (get code from website)
-/status - Check your connection status
-/disconnect - Stop receiving alerts
+<b>General:</b>
+/start - Welcome & setup
+/link FOMO-XXXX - Link account
+/status - Connection status
+/alerts - Manage all alerts ⚙️
+/disconnect - Stop ALL alerts
 
-<b>Connections (Influencer Alerts):</b>
-/connections - Show Connections alerts status
-/connections on - Enable Connections alerts
-/connections off - Disable Connections alerts
+<b>Quick toggles:</b>
+/connections on|off - Influencer alerts
+/twitter on|off - Twitter/Parser alerts
 
-/help - Show this message
+/help - This message
 
-<b>How it works:</b>
-This bot only sends notifications. All setup happens on the website.
-
-🌐 Visit the Signals page to link your Telegram.`,
+🌐 Full settings on the website.`,
         { parseMode: 'HTML' }
       );
     }
