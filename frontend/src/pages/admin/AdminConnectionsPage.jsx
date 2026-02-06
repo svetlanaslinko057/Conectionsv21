@@ -1755,6 +1755,7 @@ export default function AdminConnectionsPage() {
     { id: 'config', label: 'Config', icon: Settings },
     { id: 'stability', label: 'Stability', icon: Shield },
     { id: 'alerts', label: 'Alerts', icon: Bell },
+    { id: 'telegram', label: 'Telegram', icon: MessageSquare },
   ];
 
   // Auth loading state
