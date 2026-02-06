@@ -227,7 +227,7 @@ export async function adminConnectionsRoutes(app: FastifyInstance): Promise<void
    * GET /admin/connections/tuning/status
    * Get last tuning run results
    */
-  app.get('/tuning/status', async (req: FastifyRequest, reply: FastifyReply) => {
+  app.get('/tuning/status', async (_req: FastifyRequest, reply: FastifyReply) => {
     // Run quick tuning check
     const { runFullTuningMatrix, generateMockTuningDataset } = await import('../../modules/connections/core/scoring/threshold-tuning.js');
     
