@@ -1541,6 +1541,7 @@ const TelegramTab = ({ token }) => {
                         <option value="24">24h</option>
                         <option value="48">48h</option>
                       </select>
+                      <InfoTooltip text={ADMIN_TOOLTIPS.telegramCooldown} />
                     </div>
                   </div>
                 );
@@ -1550,34 +1551,39 @@ const TelegramTab = ({ token }) => {
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <Button
-              onClick={sendTestMessage}
-              disabled={testingSend || !settings?.enabled || settings?.preview_only || !settings?.chat_id}
-              data-testid="send-test-message"
-              className="bg-blue-500 hover:bg-blue-600"
-            >
-              {testingSend ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
-              Send Test Message
-            </Button>
-            <Button
-              onClick={dispatchAlerts}
-              disabled={dispatching || !settings?.enabled || settings?.preview_only}
-              variant="outline"
-              data-testid="dispatch-alerts"
-            >
-              {dispatching ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-              Dispatch Pending
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                onClick={sendTestMessage}
+                disabled={testingSend || !settings?.enabled || settings?.preview_only}
+                data-testid="send-test-message"
+                className="bg-blue-500 hover:bg-blue-600"
+              >
+                {testingSend ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+                Send Test Message
+              </Button>
+              <InfoTooltip text={ADMIN_TOOLTIPS.telegramTestMessage} />
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                onClick={dispatchAlerts}
+                disabled={dispatching || !settings?.enabled || settings?.preview_only}
+                variant="outline"
+                data-testid="dispatch-alerts"
+              >
+                {dispatching ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                Dispatch Pending
+              </Button>
+              <InfoTooltip text={ADMIN_TOOLTIPS.telegramDispatch} />
+            </div>
           </div>
 
           {/* Warning if not fully configured */}
-          {(!settings?.enabled || settings?.preview_only || !settings?.chat_id) && (
+          {(!settings?.enabled || settings?.preview_only) && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5" />
               <div className="text-sm text-yellow-700">
                 {!settings?.enabled && <div>• Telegram delivery отключен</div>}
-                {settings?.preview_only && <div>• Preview-only режим включен</div>}
-                {!settings?.chat_id && <div>• Chat ID не настроен</div>}
+                {settings?.preview_only && <div>• Preview-only режим включен — алерты логируются, но не отправляются</div>}
               </div>
             </div>
           )}
@@ -1585,7 +1591,11 @@ const TelegramTab = ({ token }) => {
       </SectionCard>
 
       {/* Stats Section */}
-      <SectionCard title="Delivery Stats (24h)" icon={Activity}>
+      <SectionCard 
+        title="Delivery Stats (24h)" 
+        icon={Activity}
+        action={<InfoTooltip text={ADMIN_TOOLTIPS.telegramStats} />}
+      >
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard 
             label="Total" 
