@@ -11,10 +11,15 @@ import os
 import asyncio
 import subprocess
 import socket
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv('/app/backend/.env')
 
 # Debug: log env at startup
 print("[Proxy] COOKIE_ENC_KEY present:", "COOKIE_ENC_KEY" in os.environ)
 print("[Proxy] COOKIE_ENC_KEY length:", len(os.environ.get("COOKIE_ENC_KEY", "")))
+print("[Proxy] MONGODB_URI:", os.environ.get("MONGODB_URI", "NOT SET"))
 
 app = FastAPI()
 
