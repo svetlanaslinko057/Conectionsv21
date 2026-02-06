@@ -30,14 +30,12 @@ function generateId(): string {
 }
 
 // Map alert type to user preference field
+// For future: users can subscribe to specific types on web
+// For now: users get ALL alerts if enabled
 function getPreferenceField(type: ConnectionsAlertType): string | null {
-  switch (type) {
-    case 'EARLY_BREAKOUT': return 'earlyBreakout';
-    case 'STRONG_ACCELERATION': return 'strongAcceleration';
-    case 'TREND_REVERSAL': return 'trendReversal';
-    case 'TEST': return null; // Test always goes through
-    default: return null;
-  }
+  // MVP: no per-type filtering for users
+  // All types go to all subscribers who have connectionsPreferences.enabled = true
+  return null;
 }
 
 export class ConnectionsTelegramDispatcher {
@@ -96,23 +94,20 @@ export class ConnectionsTelegramDispatcher {
 
   /**
    * Get all active subscribers who want Connections alerts
+   * 
+   * MVP LOGIC:
+   * - Everyone who pressed /start AND isActive=true gets alerts
+   * - UNLESS they explicitly did /connections off (connectionsPreferences.enabled = false)
+   * - No per-type filtering for users (admin decides types globally)
    */
-  private async getActiveSubscribers(alertType: ConnectionsAlertType): Promise<Array<{ chatId: string; userId: string }>> {
-    const prefField = getPreferenceField(alertType);
-    
-    // Find all active connections with Connections enabled
-    const query: any = {
+  private async getActiveSubscribers(): Promise<Array<{ chatId: string; userId: string }>> {
+    // Find all active connections
+    // connectionsPreferences.enabled defaults to true if not set
+    const connections = await TelegramConnectionModel.find({
       isActive: true,
       chatId: { $exists: true, $ne: '' },
-      'connectionsPreferences.enabled': { $ne: false }, // Default is true if not set
-    };
-    
-    // If specific alert type, check that preference too
-    if (prefField) {
-      query[`connectionsPreferences.${prefField}`] = { $ne: false };
-    }
-    
-    const connections = await TelegramConnectionModel.find(query, { chatId: 1, userId: 1 }).lean();
+      'connectionsPreferences.enabled': { $ne: false }, // true or not set = receives alerts
+    }, { chatId: 1, userId: 1 }).lean();
     
     return connections.map(c => ({
       chatId: c.chatId as string,
