@@ -1206,6 +1206,455 @@ const AlertsTab = ({ token }) => {
 };
 
 // ============================================================
+// TAB: TELEGRAM (Phase 2.3)
+// ============================================================
+
+const TelegramTab = ({ token }) => {
+  const [settings, setSettings] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [testingSend, setTestingSend] = useState(false);
+  const [dispatching, setDispatching] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    try {
+      // Fetch settings
+      const settingsRes = await fetch(`${BACKEND_URL}/api/admin/connections/telegram/settings`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const settingsData = await settingsRes.json();
+      if (settingsData.ok) {
+        setSettings(settingsData.data);
+      }
+
+      // Fetch stats
+      const statsRes = await fetch(`${BACKEND_URL}/api/admin/connections/telegram/stats?hours=24`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const statsData = await statsRes.json();
+      if (statsData.ok) {
+        setStats(statsData.data);
+      }
+
+      // Fetch history
+      const historyRes = await fetch(`${BACKEND_URL}/api/admin/connections/telegram/history?limit=20`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const historyData = await historyRes.json();
+      if (historyData.ok) {
+        setHistory(historyData.data);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to load Telegram settings');
+    }
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const patchSettings = async (patch) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/connections/telegram/settings`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(patch),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setSettings(data.data);
+        setToast({ message: 'Settings saved', type: 'success' });
+      } else {
+        setToast({ message: data.error || 'Failed to save', type: 'error' });
+      }
+    } catch (err) {
+      setToast({ message: 'Failed to save settings', type: 'error' });
+    }
+    setSaving(false);
+  };
+
+  const sendTestMessage = async () => {
+    setTestingSend(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/connections/telegram/test`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setToast({ message: 'Test message sent!', type: 'success' });
+        await fetchData();
+      } else {
+        setToast({ message: data.error || 'Test failed', type: 'error' });
+      }
+    } catch (err) {
+      setToast({ message: err.message || 'Test failed', type: 'error' });
+    }
+    setTestingSend(false);
+  };
+
+  const dispatchAlerts = async () => {
+    setDispatching(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/admin/connections/telegram/dispatch`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ limit: 50 }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const { sent, skipped, failed } = data.data;
+        setToast({ 
+          message: `Dispatch complete: ${sent} sent, ${skipped} skipped, ${failed} failed`, 
+          type: sent > 0 ? 'success' : 'warning' 
+        });
+        await fetchData();
+      } else {
+        setToast({ message: data.error || 'Dispatch failed', type: 'error' });
+      }
+    } catch (err) {
+      setToast({ message: 'Dispatch failed', type: 'error' });
+    }
+    setDispatching(false);
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'SENT': return 'bg-green-100 text-green-700';
+      case 'SKIPPED': return 'bg-yellow-100 text-yellow-700';
+      case 'FAILED': return 'bg-red-100 text-red-700';
+      default: return 'bg-gray-100 text-gray-600';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+        <span className="ml-2 text-gray-500">Loading Telegram settings...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 rounded-xl p-6 border border-red-200">
+        <div className="flex items-center gap-2 text-red-600">
+          <AlertTriangle className="w-5 h-5" />
+          <span className="font-medium">Failed to load Telegram settings</span>
+        </div>
+        <p className="text-sm text-red-500 mt-2">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* Info Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <MessageSquare className="w-5 h-5 text-blue-500 mt-0.5" />
+          <div>
+            <h3 className="font-medium text-blue-900">Telegram Delivery (Phase 2.3)</h3>
+            <p className="text-sm text-blue-700 mt-1">
+              Платформа управляет ботом — все настройки здесь. Бот только принимает сообщения.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Settings Section */}
+      <SectionCard 
+        title="Telegram Settings" 
+        icon={Settings}
+        action={
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={fetchData} 
+            disabled={loading}
+            data-testid="refresh-telegram-btn"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+        }
+      >
+        <div className="space-y-6">
+          {/* Global toggles */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-xl p-4">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${settings?.enabled ? 'bg-green-100' : 'bg-gray-200'}`}>
+                    <Power className={`w-5 h-5 ${settings?.enabled ? 'text-green-600' : 'text-gray-400'}`} />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">Telegram Delivery</div>
+                    <div className="text-xs text-gray-500">Глобальное включение/выключение</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => patchSettings({ enabled: !settings?.enabled })}
+                  disabled={saving}
+                  data-testid="toggle-telegram-enabled"
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    settings?.enabled ? 'bg-green-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                    settings?.enabled ? 'translate-x-6' : ''
+                  }`} />
+                </button>
+              </label>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-4">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${settings?.preview_only ? 'bg-yellow-100' : 'bg-blue-100'}`}>
+                    <Eye className={`w-5 h-5 ${settings?.preview_only ? 'text-yellow-600' : 'text-blue-600'}`} />
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900">Preview Only</div>
+                    <div className="text-xs text-gray-500">Не отправлять, только логировать</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => patchSettings({ preview_only: !settings?.preview_only })}
+                  disabled={saving}
+                  data-testid="toggle-preview-only"
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    settings?.preview_only ? 'bg-yellow-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                    settings?.preview_only ? 'translate-x-6' : ''
+                  }`} />
+                </button>
+              </label>
+            </div>
+          </div>
+
+          {/* Chat ID */}
+          <div className="bg-gray-50 rounded-xl p-4">
+            <label className="block">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare className="w-4 h-4 text-gray-400" />
+                <span className="font-medium text-gray-900">Chat / Channel ID</span>
+              </div>
+              <input
+                type="text"
+                value={settings?.chat_id || ''}
+                onChange={(e) => setSettings({ ...settings, chat_id: e.target.value })}
+                onBlur={() => patchSettings({ chat_id: settings?.chat_id })}
+                placeholder="-1001234567890"
+                data-testid="telegram-chat-id"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Для канала/группы обычно отрицательное значение. Получите через @userinfobot
+              </p>
+            </label>
+          </div>
+
+          {/* Alert Types Toggles */}
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-gray-400" />
+              Типы алертов
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {['EARLY_BREAKOUT', 'STRONG_ACCELERATION', 'TREND_REVERSAL'].map((type) => {
+                const icons = {
+                  EARLY_BREAKOUT: { icon: TrendingUp, color: 'green', label: 'Early Breakout' },
+                  STRONG_ACCELERATION: { icon: Zap, color: 'yellow', label: 'Strong Acceleration' },
+                  TREND_REVERSAL: { icon: Activity, color: 'blue', label: 'Trend Reversal' },
+                };
+                const { icon: Icon, color, label } = icons[type];
+                const isEnabled = settings?.type_enabled?.[type];
+                const cooldown = settings?.cooldown_hours?.[type] || 12;
+
+                return (
+                  <div key={type} className="bg-gray-50 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-1.5 rounded-lg bg-${color}-100`}>
+                          <Icon className={`w-4 h-4 text-${color}-600`} />
+                        </div>
+                        <span className="font-medium text-sm text-gray-900">{label}</span>
+                      </div>
+                      <button
+                        onClick={() => patchSettings({ 
+                          type_enabled: { ...settings?.type_enabled, [type]: !isEnabled } 
+                        })}
+                        disabled={saving}
+                        data-testid={`toggle-type-${type.toLowerCase()}`}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                          isEnabled 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-gray-200 text-gray-500'
+                        }`}
+                      >
+                        {isEnabled ? 'ON' : 'OFF'}
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3 h-3 text-gray-400" />
+                      <span className="text-xs text-gray-500">Cooldown:</span>
+                      <select
+                        value={cooldown}
+                        onChange={(e) => patchSettings({
+                          cooldown_hours: { ...settings?.cooldown_hours, [type]: parseInt(e.target.value) }
+                        })}
+                        disabled={saving}
+                        className="text-xs px-2 py-1 border border-gray-200 rounded bg-white"
+                      >
+                        <option value="6">6h</option>
+                        <option value="12">12h</option>
+                        <option value="24">24h</option>
+                        <option value="48">48h</option>
+                      </select>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <Button
+              onClick={sendTestMessage}
+              disabled={testingSend || !settings?.enabled || settings?.preview_only || !settings?.chat_id}
+              data-testid="send-test-message"
+              className="bg-blue-500 hover:bg-blue-600"
+            >
+              {testingSend ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+              Send Test Message
+            </Button>
+            <Button
+              onClick={dispatchAlerts}
+              disabled={dispatching || !settings?.enabled || settings?.preview_only}
+              variant="outline"
+              data-testid="dispatch-alerts"
+            >
+              {dispatching ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+              Dispatch Pending
+            </Button>
+          </div>
+
+          {/* Warning if not fully configured */}
+          {(!settings?.enabled || settings?.preview_only || !settings?.chat_id) && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5" />
+              <div className="text-sm text-yellow-700">
+                {!settings?.enabled && <div>• Telegram delivery отключен</div>}
+                {settings?.preview_only && <div>• Preview-only режим включен</div>}
+                {!settings?.chat_id && <div>• Chat ID не настроен</div>}
+              </div>
+            </div>
+          )}
+        </div>
+      </SectionCard>
+
+      {/* Stats Section */}
+      <SectionCard title="Delivery Stats (24h)" icon={Activity}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard 
+            label="Total" 
+            value={stats?.total || 0} 
+            icon={Bell}
+            color="gray" 
+          />
+          <StatCard 
+            label="Sent" 
+            value={stats?.sent || 0} 
+            icon={Send}
+            color="green" 
+          />
+          <StatCard 
+            label="Skipped" 
+            value={stats?.skipped || 0} 
+            icon={EyeOff}
+            color="yellow" 
+          />
+          <StatCard 
+            label="Failed" 
+            value={stats?.failed || 0} 
+            icon={XCircle}
+            color="red" 
+          />
+        </div>
+      </SectionCard>
+
+      {/* History Section */}
+      <SectionCard title="Recent Deliveries" icon={Clock}>
+        {history.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p>No delivery history yet</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-xs text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                  <th className="text-left py-3 px-2">Time</th>
+                  <th className="text-left py-3 px-2">Type</th>
+                  <th className="text-left py-3 px-2">Account</th>
+                  <th className="text-left py-3 px-2">Status</th>
+                  <th className="text-left py-3 px-2">Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((item, idx) => (
+                  <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="py-3 px-2 text-sm text-gray-500">
+                      {new Date(item.created_at).toLocaleString()}
+                    </td>
+                    <td className="py-3 px-2">
+                      <span className="text-xs font-medium px-2 py-1 rounded bg-gray-100 text-gray-700">
+                        {item.type}
+                      </span>
+                    </td>
+                    <td className="py-3 px-2 font-medium text-gray-900">
+                      {item.username ? `@${item.username}` : item.account_id}
+                    </td>
+                    <td className="py-3 px-2">
+                      <span className={`text-xs font-medium px-2 py-1 rounded ${getStatusColor(item.delivery_status)}`}>
+                        {item.delivery_status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-2 text-sm text-gray-500">
+                      {item.delivery_reason || '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SectionCard>
+    </div>
+  );
+};
+
+// ============================================================
 // ERROR BOUNDARY FOR TABS
 // ============================================================
 
