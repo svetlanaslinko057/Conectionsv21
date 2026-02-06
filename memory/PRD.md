@@ -1,134 +1,84 @@
-# Connections Module - PRD
+# Connections Module - Product Requirements Document
 
-## Documentation
+## Оригинальное задание
+Развернуть проект Connections Module с GitHub (https://github.com/svetlanaslinko057/Conections-1) в изолированном режиме для дальнейшей доработки.
 
-- **Full Documentation**: `/app/docs/CONNECTIONS_MODULE.md`
-- **Quick Start Guide**: `/app/docs/QUICK_START.md`
-- **Product Concept**: `/app/docs/CONCEPT.md`
+## Описание продукта
+**Connections Module** — изолированный модуль платформы для формирования справедливого рейтинга инфлюенсеров в социальных сетях.
 
-## Original Problem Statement
-Развернуть изолированный модуль "Connections" для формирования справедливого рейтинга инфлюенсеров в Twitter. Модуль должен быть изолирован и не влиять на другие сущности системы.
+### Ключевая проблема
+Традиционные метрики (followers, likes) легко накручиваются и не отражают реальной ценности инфлюенсера.
 
-## Architecture
-- **Backend**: FastAPI proxy (8001) → Node.js/Fastify (8003)
-- **Frontend**: React + Tailwind CSS
-- **Database**: MongoDB
-- **Modules**: Connections (enabled), Twitter/Sentiment/Neural (disabled - не используем ресурсы)
+### Решение
+- **Influence Scoring** — Quality-adjusted score на основе реальных взаимодействий
+- **Trend Analysis** — Velocity + Acceleration изменений
+- **Early Signal Detection** — Детекция breakout и rising сигналов
+- **Risk Detection** — Оценка накрутки и манипуляций
+- **Alerts Engine** — Оповещения о важных событиях
 
-## User Personas
-1. **Admin** - управление модулем Connections через Control Plane
-2. **Analyst** - просмотр и анализ influence score инфлюенсеров
-3. **Trader** - мониторинг Early Signals для раннего обнаружения breakout аккаунтов
+## Архитектура
 
-## Core Requirements (Static)
-- Influence scoring для Twitter аккаунтов
-- Risk detection (low/medium/high)
-- Audience overlap comparison
-- Early Signal detection (breakout, rising)
-- Trend-adjusted scoring (velocity, acceleration)
-- Admin Control Plane (enable/disable, config, stability, alerts)
+### Технологический стек
+| Компонент | Технология |
+|-----------|------------|
+| Backend Runtime | Node.js 20+ (Fastify + TypeScript) |
+| Proxy Layer | Python FastAPI |
+| Frontend | React 18 + Tailwind CSS |
+| Database | MongoDB |
 
-## What's Been Implemented
+### Порты
+- **8001** — FastAPI Proxy (внешний endpoint)
+- **8003** — Node.js Fastify (internal)
+- **3000** — React Frontend
 
-### 2026-02-06 - Initial Deployment
-- ✅ Deployed Connections module from GitHub
-- ✅ Backend: FastAPI proxy + Node.js/Fastify
-- ✅ Frontend: React with Connections pages
-- ✅ MongoDB integration
-- ✅ Test data seeding
+### Ключевые файлы
+- `/app/backend/src/server-minimal.ts` — изолированный entry point
+- `/app/backend/server.py` — FastAPI proxy
+- `/app/backend/src/modules/connections/` — Connections Module
+- `/app/frontend/src/pages/ConnectionsPage.jsx` — Main UI
+- `/app/frontend/src/pages/ConnectionsEarlySignalPage.jsx` — Radar UI
 
-### 2026-02-06 - P0 Fixes (DONE)
-- ✅ **P0.1**: Fixed `/admin/connections` Loading hang
-- ✅ **P0.2**: Fail-safe for Admin - TabErrorBoundary, Authentication Required screen
+## Что реализовано (Feb 6, 2026)
+- [x] Клонирование репозитория с GitHub
+- [x] Настройка environment variables
+- [x] Запуск MongoDB, Backend, Frontend
+- [x] Connections Module в mock режиме
+- [x] Public API endpoints работают
+- [x] Admin API с авторизацией работает
+- [x] Early Signal Radar отображает данные
+- [x] Alerts Engine генерирует алерты
 
-### 2026-02-06 - P1.1 Polish Admin Connections UI (DONE)
-- ✅ **Overview**: 3 logical blocks (Status, Activity 24h, Warnings)
-- ✅ **Config**: Collapsible sections, read-only/editable distinction
-- ✅ **Stability**: Big percentage score, Parameter Sensitivity
-- ✅ **Alerts**: Summary cards, table view with filters
+## API Endpoints
 
-### 2026-02-06 - P1.2 Radar / Compare UX (DONE)
-- ✅ **Radar View**: Hover tooltips, selected state with outline
-- ✅ **Compare Mode**: Explicit mode with banner
-- ✅ **Compare Modal**: Symmetric A vs B layout
-- ✅ **Session Persistence**: Token saved to localStorage
+### Public API
+- `GET /api/health` — Health check
+- `GET /api/connections/health` — Module health
+- `GET /api/connections/accounts` — List accounts
+- `POST /api/connections/score` — Calculate score
+- `GET /api/connections/score/mock` — Mock score
+- `POST /api/connections/trends` — Trend analysis
+- `POST /api/connections/early-signal` — Early signal detection
 
-### 2026-02-06 - P2.1 Alerts Engine (DONE)
-- ✅ **Alert Engine**: Batch processing of accounts
-- ✅ **Event Types**: EARLY_BREAKOUT, STRONG_ACCELERATION, TREND_REVERSAL
-- ✅ **Conditions**:
-  - EARLY_BREAKOUT: badge=breakout, confidence>0.5, risk≠high
-  - STRONG_ACCELERATION: accel>0.4, velocity>0.1
-  - TREND_REVERSAL: state change (growing→cooling, etc.)
-- ✅ **Cooldown**: Per-account, per-type (6h, 3h, 4h)
-- ✅ **Admin UI**: Run Batch button, alerts preview table
-- ✅ **Preview-only**: No actual delivery (dry run)
+### Admin API (requires auth)
+- `POST /api/admin/auth/login` — Admin login
+- `GET /api/admin/connections/overview` — Module overview
+- `POST /api/admin/connections/toggle` — Enable/disable module
+- `POST /api/admin/connections/source` — Change data source
+- `POST /api/admin/connections/alerts/run` — Run alerts batch
 
-### 2026-02-06 - P2.2 Final Readiness Check (DONE)
-- ✅ **Backend**: 100% functional
-  - Health checks: /api/health, /api/connections/health
-  - Scoring API: Stable results
-  - Trends API: Correct states
-  - Early Signal API: Badge detection works
-- ✅ **Admin Control Plane**: Fully operational
-  - Overview loads < 2 sec
-  - Config shows read-only params
-  - Stability score ≥ 0.9 (100%)
-  - Alerts batch generates events
-  - Cooldown deduplication works
-- ✅ **Frontend**: 90% functional
-  - /connections: Account list works
-  - /connections/radar: Early Signal Radar works
-  - Compare mode functional
-  - Filter/Table view toggles work
+## Credentials
+```
+Admin: username=admin, password=admin12345
+```
 
-## READY FOR TWITTER: YES ✅
+## Режимы работы
+- **Mock** — тестовые данные (текущий режим)
+- **Sandbox** — ограниченные реальные данные
+- **Twitter Live** — реальные данные (требует API keys)
 
-System is stable and ready for Twitter integration:
-- Mathematical models are predictable
-- Alerts don't flood (cooldown works)
-- Admin can control everything
-- UI is responsive and intuitive
-
-## Working Endpoints
-
-### Public Connections API
-- `GET /api/connections/health`
-- `GET /api/connections/stats`
-- `GET /api/connections/accounts`
-- `POST /api/connections/compare`
-- `POST /api/connections/score`
-- `GET /api/connections/score/mock`
-- `GET /api/connections/trends/mock`
-- `GET /api/connections/early-signal/mock`
-
-### Admin Connections API
-- `GET /api/admin/connections/overview`
-- `POST /api/admin/connections/toggle`
-- `POST /api/admin/connections/source`
-- `GET /api/admin/connections/config`
-- `GET /api/admin/connections/tuning/status`
-- `POST /api/admin/connections/tuning/run`
-- `GET /api/admin/connections/alerts/preview`
-- `POST /api/admin/connections/alerts/run` (P2.1)
-- `POST /api/admin/connections/alerts/config`
-- `POST /api/admin/connections/alerts/send`
-- `POST /api/admin/connections/alerts/suppress`
-
-## Next Phase: P3 - Twitter Integration
-
-When ready to proceed:
-- Ingest: Real Twitter data
-- Load: Rate limiting, cost control
-- Quality: Data validation
-- Alert Delivery: Telegram/Discord integration
-
-## Admin Credentials
-- Username: `admin`
-- Password: `admin12345`
-
-## URLs
-- Connections Page: `/connections`
-- Early Signal Radar: `/connections/radar`
-- Admin Connections: `/admin/connections`
-- Admin Login: `/admin/login`
+## Следующие шаги (Backlog)
+- [ ] P3: Twitter Integration (требует API keys)
+- [ ] Alert Delivery (Telegram/Discord)
+- [ ] Historical Data Storage
+- [ ] ML-enhanced Scoring
+- [ ] Network Graph Analysis
