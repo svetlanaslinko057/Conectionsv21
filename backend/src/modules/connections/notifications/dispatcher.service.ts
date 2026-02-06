@@ -4,6 +4,11 @@
  * 
  * This is the "brain" - decides what to send and when
  * Bot is "dumb receiver" - all control from platform
+ * 
+ * DELIVERY LOGIC:
+ * 1. Admin can set global chat_id for system/channel alerts
+ * 2. Users receive alerts in their personal chat (from TelegramConnectionModel)
+ * 3. Users can mute via /connections off in Telegram
  */
 
 import type { Db } from 'mongodb';
@@ -13,6 +18,7 @@ import { ConnectionsTelegramSettingsStore } from './settings.store.js';
 import { ConnectionsTelegramDeliveryStore } from './delivery.store.js';
 import { TelegramTransport } from './telegram.transport.js';
 import { getAlerts, updateAlertStatus, type ConnectionsAlert } from '../core/alerts/connections-alerts-engine.js';
+import { TelegramConnectionModel } from '../../../core/notifications/telegram.service.js';
 
 function hoursAgoIso(hours: number): string {
   const d = new Date(Date.now() - hours * 3600 * 1000);
@@ -23,17 +29,30 @@ function generateId(): string {
   return `tg_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 }
 
+// Map alert type to user preference field
+function getPreferenceField(type: ConnectionsAlertType): string | null {
+  switch (type) {
+    case 'EARLY_BREAKOUT': return 'earlyBreakout';
+    case 'STRONG_ACCELERATION': return 'strongAcceleration';
+    case 'TREND_REVERSAL': return 'trendReversal';
+    case 'TEST': return null; // Test always goes through
+    default: return null;
+  }
+}
+
 export class ConnectionsTelegramDispatcher {
   private settingsStore: ConnectionsTelegramSettingsStore;
   private deliveryStore: ConnectionsTelegramDeliveryStore;
   private telegram: TelegramTransport;
   private publicBaseUrl: string;
+  private db: Db;
 
   constructor(
     db: Db,
     telegram: TelegramTransport,
     publicBaseUrl: string
   ) {
+    this.db = db;
     this.settingsStore = new ConnectionsTelegramSettingsStore(db);
     this.deliveryStore = new ConnectionsTelegramDeliveryStore(db);
     this.telegram = telegram;
@@ -76,8 +95,42 @@ export class ConnectionsTelegramDispatcher {
   }
 
   /**
+   * Get all active subscribers who want Connections alerts
+   */
+  private async getActiveSubscribers(alertType: ConnectionsAlertType): Promise<Array<{ chatId: string; userId: string }>> {
+    const prefField = getPreferenceField(alertType);
+    
+    // Find all active connections with Connections enabled
+    const query: any = {
+      isActive: true,
+      chatId: { $exists: true, $ne: '' },
+      'connectionsPreferences.enabled': { $ne: false }, // Default is true if not set
+    };
+    
+    // If specific alert type, check that preference too
+    if (prefField) {
+      query[`connectionsPreferences.${prefField}`] = { $ne: false };
+    }
+    
+    const connections = await TelegramConnectionModel.find(query, { chatId: 1, userId: 1 }).lean();
+    
+    return connections.map(c => ({
+      chatId: c.chatId as string,
+      userId: c.userId,
+    }));
+  }
+
+  /**
    * Dispatch pending alerts to Telegram
    * Main entry point for delivery
+   * 
+   * FLOW:
+   * 1. Check global settings (admin can disable entirely)
+   * 2. For each pending alert:
+   *    - Check type toggle (admin can disable specific types)
+   *    - Check cooldown per account
+   *    - Send to ALL active subscribers (not just one chat)
+   * 3. Optionally also send to admin channel (if chat_id set in settings)
    */
   async dispatchPending(opts?: { dryRun?: boolean; limit?: number }): Promise<{
     ok: boolean;
@@ -111,14 +164,14 @@ export class ConnectionsTelegramDispatcher {
     for (const alert of previewAlerts) {
       const type = alert.type as ConnectionsAlertType;
 
-      // Type toggle check
+      // Type toggle check (admin can disable specific types globally)
       if (!settings.type_enabled[type]) {
         await this.recordSkipped(alert, 'type_disabled');
         skipped++;
         continue;
       }
 
-      // Cooldown check
+      // Cooldown check (per account, not per user)
       const cooldownH = settings.cooldown_hours[type] ?? 12;
       if (cooldownH > 0) {
         const lastSent = await this.deliveryStore.getLastSent(alert.account.author_id, type);
@@ -133,14 +186,6 @@ export class ConnectionsTelegramDispatcher {
         }
       }
 
-      // Chat ID
-      const chatId = settings.chat_id;
-      if (!chatId) {
-        await this.recordFailed(alert, 'missing_chat_id');
-        failed++;
-        continue;
-      }
-
       // Build message
       const event = this.alertToEvent(alert);
       const text = formatTelegramMessage(this.publicBaseUrl, event);
@@ -150,13 +195,43 @@ export class ConnectionsTelegramDispatcher {
         continue;
       }
 
-      // Send!
-      try {
-        await this.telegram.sendMessage(chatId, text);
-        await this.recordSent(alert, chatId);
+      // Get all subscribers who want this alert type
+      const subscribers = await this.getActiveSubscribers(type);
+      
+      // Also add admin channel if configured
+      if (settings.chat_id) {
+        const hasAdminChannel = subscribers.some(s => s.chatId === settings.chat_id);
+        if (!hasAdminChannel) {
+          subscribers.push({ chatId: settings.chat_id, userId: 'admin_channel' });
+        }
+      }
+
+      if (subscribers.length === 0) {
+        await this.recordSkipped(alert, 'no_subscribers');
+        skipped++;
+        continue;
+      }
+
+      // Send to all subscribers
+      let sentCount = 0;
+      let failedCount = 0;
+      
+      for (const subscriber of subscribers) {
+        try {
+          await this.telegram.sendMessage(subscriber.chatId, text);
+          sentCount++;
+        } catch (err: any) {
+          console.error(`[Dispatcher] Failed to send to ${subscriber.chatId}:`, err?.message);
+          failedCount++;
+        }
+      }
+
+      // Record result
+      if (sentCount > 0) {
+        await this.recordSent(alert, `${sentCount} subscribers`);
         sent++;
-      } catch (err: any) {
-        await this.recordFailed(alert, err?.message || 'send_failed');
+      } else {
+        await this.recordFailed(alert, `all ${failedCount} sends failed`);
         failed++;
       }
     }
@@ -166,6 +241,7 @@ export class ConnectionsTelegramDispatcher {
 
   /**
    * Send test message (for Admin UI)
+   * Sends to admin channel OR first active subscriber
    */
   async sendTestMessage(): Promise<{ ok: boolean; message?: string }> {
     const settings = await this.settingsStore.get();
@@ -178,8 +254,21 @@ export class ConnectionsTelegramDispatcher {
       throw new Error('Preview-only mode is enabled. Disable it to send messages.');
     }
 
-    if (!settings.chat_id) {
-      throw new Error('Chat ID is not configured. Set it in settings first.');
+    // Determine where to send test
+    let targetChatId = settings.chat_id;
+    let targetDescription = 'admin channel';
+    
+    if (!targetChatId) {
+      // Try to find first active subscriber
+      const subscribers = await this.getActiveSubscribers('TEST');
+      if (subscribers.length > 0) {
+        targetChatId = subscribers[0].chatId;
+        targetDescription = `subscriber ${subscribers[0].userId}`;
+      }
+    }
+
+    if (!targetChatId) {
+      throw new Error('No chat ID configured and no active subscribers found.');
     }
 
     const testEvent: ConnectionsAlertEvent = {
@@ -191,25 +280,25 @@ export class ConnectionsTelegramDispatcher {
     };
 
     const text = formatTelegramMessage(this.publicBaseUrl, testEvent);
-    await this.telegram.sendMessage(settings.chat_id, text);
+    await this.telegram.sendMessage(targetChatId, text);
 
     // Record test delivery
     testEvent.delivery_status = 'SENT';
     testEvent.sent_at = new Date().toISOString();
     await this.deliveryStore.record(testEvent);
 
-    return { ok: true, message: 'Test message sent successfully' };
+    return { ok: true, message: `Test message sent to ${targetDescription}` };
   }
 
   // ============================================================
   // PRIVATE HELPERS
   // ============================================================
 
-  private async recordSent(alert: ConnectionsAlert, chatId: string): Promise<void> {
+  private async recordSent(alert: ConnectionsAlert, target: string): Promise<void> {
     const event = this.alertToEvent(alert);
     event.delivery_status = 'SENT';
     event.sent_at = new Date().toISOString();
-    event.target = { telegram_chat_id: chatId };
+    event.target = { telegram_chat_id: target };
     await this.deliveryStore.record(event);
     
     // Update alert status in engine
