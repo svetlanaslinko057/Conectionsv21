@@ -9,11 +9,22 @@
  * - POST /admin/connections/tuning/run - Run tuning analysis
  * - GET /admin/connections/alerts/preview - Pending alerts
  * - POST /admin/connections/alerts/config - Update alert settings
+ * - POST /admin/connections/alerts/run - Run alerts batch (P2.1)
  */
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { requireAdminAuth } from './admin.middleware.js';
 import { logAdminAction } from './admin.audit.js';
+import {
+  runAlertsBatch,
+  getAlerts,
+  getAlertsSummary,
+  updateAlertStatus,
+  getAlertsEngineConfig,
+  updateAlertsEngineConfig,
+  type AccountState,
+  type AlertType,
+} from '../../modules/connections/core/alerts/index.js';
 
 // In-memory state for demo (would be DB in production)
 let connectionsState = {
