@@ -574,8 +574,14 @@ db.connection_alerts.createIndex({ "account.author_id": 1 });
 
 ## 6.3 Preview-only режим
 
-В текущей версии алерты **НЕ отправляются** наружу.
-Это "dry run" для калибровки частоты и качества сигналов.
+В текущей версии алерты генерируются в статусе `preview`.
+
+**Для реальной доставки в Telegram:**
+1. Включить Telegram Delivery в Admin → Connections → Telegram
+2. Отключить Preview Only
+3. Пользователи должны нажать `/start` в боте
+
+Подробнее: [11. Telegram Notifications](#11-telegram-notifications-phase-23)
 
 ---
 
