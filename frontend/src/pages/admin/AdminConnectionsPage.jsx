@@ -1371,7 +1371,10 @@ const TelegramTab = ({ token }) => {
         <div className="flex items-start gap-3">
           <MessageSquare className="w-5 h-5 text-blue-500 mt-0.5" />
           <div>
-            <h3 className="font-medium text-blue-900">Telegram Delivery (Phase 2.3)</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium text-blue-900">Telegram Delivery (Phase 2.3)</h3>
+              <InfoTooltip text={ADMIN_TOOLTIPS.telegramSubscribers} />
+            </div>
             <p className="text-sm text-blue-700 mt-1">
               Платформа управляет ботом — все настройки здесь. Бот только принимает сообщения.
             </p>
@@ -1405,7 +1408,10 @@ const TelegramTab = ({ token }) => {
                     <Power className={`w-5 h-5 ${settings?.enabled ? 'text-green-600' : 'text-gray-400'}`} />
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">Telegram Delivery</div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium text-gray-900">Telegram Delivery</span>
+                      <InfoTooltip text={ADMIN_TOOLTIPS.telegramEnabled} />
+                    </div>
                     <div className="text-xs text-gray-500">Глобальное включение/выключение</div>
                   </div>
                 </div>
@@ -1431,7 +1437,10 @@ const TelegramTab = ({ token }) => {
                     <Eye className={`w-5 h-5 ${settings?.preview_only ? 'text-yellow-600' : 'text-blue-600'}`} />
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">Preview Only</div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium text-gray-900">Preview Only</span>
+                      <InfoTooltip text={ADMIN_TOOLTIPS.telegramPreviewOnly} />
+                    </div>
                     <div className="text-xs text-gray-500">Не отправлять, только логировать</div>
                   </div>
                 </div>
@@ -1457,6 +1466,7 @@ const TelegramTab = ({ token }) => {
               <div className="flex items-center gap-2 mb-2">
                 <MessageSquare className="w-4 h-4 text-gray-400" />
                 <span className="font-medium text-gray-900">Chat / Channel ID</span>
+                <InfoTooltip text={ADMIN_TOOLTIPS.telegramChatId} />
               </div>
               <input
                 type="text"
@@ -1468,7 +1478,7 @@ const TelegramTab = ({ token }) => {
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <p className="text-xs text-gray-500 mt-2">
-                Для канала/группы обычно отрицательное значение. Получите через @userinfobot
+                Опционально. Основная доставка — в личные чаты подписчиков. Получите ID через @userinfobot
               </p>
             </label>
           </div>
@@ -1482,11 +1492,11 @@ const TelegramTab = ({ token }) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {['EARLY_BREAKOUT', 'STRONG_ACCELERATION', 'TREND_REVERSAL'].map((type) => {
                 const icons = {
-                  EARLY_BREAKOUT: { icon: TrendingUp, color: 'green', label: 'Early Breakout' },
-                  STRONG_ACCELERATION: { icon: Zap, color: 'yellow', label: 'Strong Acceleration' },
-                  TREND_REVERSAL: { icon: Activity, color: 'blue', label: 'Trend Reversal' },
+                  EARLY_BREAKOUT: { icon: TrendingUp, color: 'green', label: 'Early Breakout', tooltip: ADMIN_TOOLTIPS.telegramEarlyBreakout },
+                  STRONG_ACCELERATION: { icon: Zap, color: 'yellow', label: 'Strong Acceleration', tooltip: ADMIN_TOOLTIPS.telegramStrongAcceleration },
+                  TREND_REVERSAL: { icon: Activity, color: 'blue', label: 'Trend Reversal', tooltip: ADMIN_TOOLTIPS.telegramTrendReversal },
                 };
-                const { icon: Icon, color, label } = icons[type];
+                const { icon: Icon, color, label, tooltip } = icons[type];
                 const isEnabled = settings?.type_enabled?.[type];
                 const cooldown = settings?.cooldown_hours?.[type] || 12;
 
@@ -1498,6 +1508,7 @@ const TelegramTab = ({ token }) => {
                           <Icon className={`w-4 h-4 text-${color}-600`} />
                         </div>
                         <span className="font-medium text-sm text-gray-900">{label}</span>
+                        <InfoTooltip text={tooltip} />
                       </div>
                       <button
                         onClick={() => patchSettings({ 
