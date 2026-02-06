@@ -1700,7 +1700,7 @@ export default function AdminConnectionsPage() {
   
   // Get initial tab from URL query param
   const tabFromUrl = searchParams.get('tab') || 'overview';
-  const validTabs = ['overview', 'config', 'stability', 'alerts'];
+  const validTabs = ['overview', 'config', 'stability', 'alerts', 'telegram'];
   const initialTab = validTabs.includes(tabFromUrl) ? tabFromUrl : 'overview';
   
   const [activeTab, setActiveTab] = useState(initialTab);
