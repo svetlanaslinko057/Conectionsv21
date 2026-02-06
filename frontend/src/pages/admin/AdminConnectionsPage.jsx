@@ -1625,7 +1625,11 @@ const TelegramTab = ({ token }) => {
       </SectionCard>
 
       {/* History Section */}
-      <SectionCard title="Recent Deliveries" icon={Clock}>
+      <SectionCard 
+        title="Recent Deliveries" 
+        icon={Clock}
+        action={<InfoTooltip text={ADMIN_TOOLTIPS.telegramHistory} />}
+      >
         {history.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
