@@ -60,6 +60,7 @@ export function AdminAuthProvider({ children }) {
           username: result.username,
           expiresAt: result.expiresAtTs,
         });
+        setToken(result.token);
         return { ok: true };
       }
       return { ok: false, error: 'Login failed' };
@@ -73,6 +74,7 @@ export function AdminAuthProvider({ children }) {
   const logout = useCallback(() => {
     apiLogout();
     setUser(null);
+    setToken(null);
   }, []);
 
   const isAdmin = user?.role === 'ADMIN';
