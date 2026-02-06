@@ -967,6 +967,7 @@ const AlertsTab = ({ token }) => {
     switch (type) {
       case 'EARLY_BREAKOUT': return <TrendingUp className="w-4 h-4" />;
       case 'STRONG_ACCELERATION': return <Zap className="w-4 h-4" />;
+      case 'TREND_REVERSAL': return <Activity className="w-4 h-4" />;
       case 'RISK_SPIKE': return <AlertTriangle className="w-4 h-4" />;
       default: return <Bell className="w-4 h-4" />;
     }
