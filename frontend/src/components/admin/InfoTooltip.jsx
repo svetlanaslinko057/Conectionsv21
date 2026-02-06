@@ -82,6 +82,20 @@ export const ADMIN_TOOLTIPS = {
   pipelineStatus: 'Current state of this processing stage.',
   pipelineLatency: 'Time taken to complete last run.',
   pipelineRows: 'Number of records processed.',
+  
+  // Telegram Notifications (Phase 2.3)
+  telegramEnabled: 'Глобальное включение/выключение доставки алертов в Telegram. Когда OFF — никакие алерты не отправляются.',
+  telegramPreviewOnly: 'Режим предпросмотра. Алерты логируются, но НЕ отправляются в Telegram. Используйте для тестирования.',
+  telegramChatId: 'ID канала/группы для админских алертов. Опционально — основная доставка идёт в личные чаты подписчиков.',
+  telegramEarlyBreakout: 'Алерты о раннем росте влияния. Сигнал, что аккаунт показывает рост, который рынок ещё не заметил.',
+  telegramStrongAcceleration: 'Алерты о резком ускорении. Динамика аккаунта усиливается, возможен переход в breakout.',
+  telegramTrendReversal: 'Алерты об изменении тренда. Направление динамики аккаунта изменилось.',
+  telegramCooldown: 'Минимальный интервал между алертами одного типа для одного аккаунта. Защита от спама.',
+  telegramTestMessage: 'Отправить тестовое сообщение всем активным подписчикам для проверки настройки.',
+  telegramDispatch: 'Принудительно отправить накопленные алерты. Обычно происходит автоматически.',
+  telegramStats: 'Статистика доставки за последние 24 часа: отправлено, пропущено, ошибки.',
+  telegramHistory: 'История отправленных алертов с деталями: тип, аккаунт, время, статус.',
+  telegramSubscribers: 'Пользователи получают алерты после /start в боте. Mute: /connections off. Все настройки — на платформе.',
 };
 
 export default InfoTooltip;
