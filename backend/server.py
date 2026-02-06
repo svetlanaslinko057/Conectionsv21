@@ -73,13 +73,27 @@ async def start_node_backend():
         await asyncio.sleep(2)  # Wait for port to be released
     
     print("[Proxy] Starting Node.js backend with fresh environment...")
+    
+    # Build environment from .env file + current env
     env = os.environ.copy()
+    
+    # Explicitly read and set all vars from .env
+    with open('/app/backend/.env', 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, _, value = line.partition('=')
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                env[key] = value
+    
     env["PORT"] = "8003"
     env["NODE_OPTIONS"] = "--max-old-space-size=2048"
     
     # Log critical env vars being passed
-    print(f"[Proxy] Passing COOKIE_ENC_KEY to Node.js: {bool(env.get('COOKIE_ENC_KEY'))}")
-    print(f"[Proxy] COOKIE_ENC_KEY length: {len(env.get('COOKIE_ENC_KEY', ''))}")
+    print(f"[Proxy] Passing MONGODB_URI to Node.js: {bool(env.get('MONGODB_URI'))}")
+    print(f"[Proxy] MONGODB_URI: {env.get('MONGODB_URI', 'NOT SET')}")
+    print(f"[Proxy] TELEGRAM_BOT_TOKEN present: {bool(env.get('TELEGRAM_BOT_TOKEN'))}")
     
     # Open log files
     stdout_log = open("/var/log/supervisor/backend-node.out.log", "a")
