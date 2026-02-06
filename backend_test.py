@@ -249,13 +249,14 @@ class P22BackendTester:
                 if data.get('ok') and 'data' in data:
                     initial_count = data['data'].get('summary', {}).get('total', 0)
             
-            # Run alerts batch
+            # Run alerts batch with empty JSON body
             batch_response = self.session.post(
                 f"{self.base_url}/api/admin/connections/alerts/run",
                 headers={
                     'Authorization': f'Bearer {self.admin_token}',
                     'Content-Type': 'application/json'
-                }
+                },
+                json={}  # Send empty JSON object
             )
             
             if batch_response.status_code == 200:
@@ -265,6 +266,7 @@ class P22BackendTester:
                     self.log(f"Alerts batch generated: {alerts_generated} alerts")
                     return alerts_generated >= 0  # Should generate some alerts or at least run successfully
             
+            self.log(f"Alerts batch failed: {batch_response.status_code} - {batch_response.text}")
             return False
         except Exception as e:
             self.log(f"Admin alerts batch test failed: {e}")
