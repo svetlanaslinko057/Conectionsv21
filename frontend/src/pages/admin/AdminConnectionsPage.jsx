@@ -1310,54 +1310,59 @@ export default function AdminConnectionsPage() {
   // Auth loading state
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
-          <p className="text-gray-500">Checking authentication...</p>
+      <AdminLayout>
+        <div className="flex items-center justify-center p-12">
+          <div className="text-center">
+            <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-3" />
+            <p className="text-gray-500">Checking authentication...</p>
+          </div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   // Not authenticated - show login prompt
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-xl p-8 shadow-lg max-w-md w-full text-center">
-          <div className="p-3 bg-red-100 rounded-full w-fit mx-auto mb-4">
-            <AlertTriangle className="w-8 h-8 text-red-500" />
+      <AdminLayout>
+        <div className="flex items-center justify-center p-12">
+          <div className="bg-white rounded-xl p-8 shadow-lg max-w-md w-full text-center">
+            <div className="p-3 bg-red-100 rounded-full w-fit mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Authentication Required</h2>
+            <p className="text-gray-500 mb-6">Please log in to access the Admin Connections panel.</p>
+            <a 
+              href="/admin/login" 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              data-testid="go-to-login"
+            >
+              Go to Login
+            </a>
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Authentication Required</h2>
-          <p className="text-gray-500 mb-6">Please log in to access the Admin Connections panel.</p>
-          <a 
-            href="/admin/login" 
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            data-testid="go-to-login"
-          >
-            Go to Login
-          </a>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header - Sticky */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl shadow-lg">
-                <Activity className="w-6 h-6 text-white" />
+    <AdminLayout>
+      <div className="bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl shadow-lg">
+                  <Activity className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Connections Admin</h1>
+                  <p className="text-sm text-gray-500">Control Plane for Connections Module</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Connections Admin</h1>
-                <p className="text-sm text-gray-500">Control Plane for Connections Module</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {lastUpdated && (
+              <div className="flex items-center gap-4">
+                {lastUpdated && (
                 <Timestamp date={lastUpdated} label="Updated" />
               )}
               <Button variant="outline" size="sm" onClick={fetchOverview} disabled={loading} data-testid="refresh-btn">
