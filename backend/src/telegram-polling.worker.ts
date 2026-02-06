@@ -130,32 +130,47 @@ Or type /start for more information.`,
         );
       }
     }
-    // Handle plain /start
+    // Handle plain /start - register for Connections alerts
     else if (text === '/start') {
+      // Create/update connection for this chatId
+      // This enables user to receive Connections alerts immediately
+      await telegramService.TelegramConnectionModel.updateOne(
+        { chatId },
+        {
+          $set: {
+            chatId,
+            username,
+            firstName,
+            isActive: true,
+            connectedAt: new Date(),
+          },
+          $setOnInsert: {
+            userId: `tg_${chatId}`, // Auto-generate userId for direct bot users
+          }
+        },
+        { upsert: true }
+      );
+      
       await telegramService.sendTelegramMessage(
         chatId,
         `👋 <b>Welcome to FOMO Alerts</b>
 
-This bot notifies you when important on-chain behavior is detected.
+You're now subscribed to receive alerts including:
+• 🚀 Early Breakout signals
+• 📈 Strong Acceleration
+• 🔄 Trend Changes
 
-You'll receive alerts about:
-• Large transfers
-• Consistent buying or selling  
-• Smart money activity
-• Unusual wallet or token behavior
+<b>Commands:</b>
+/connections - Check Connections alerts status
+/connections off - Mute Connections alerts
+/status - Check connection status
+/help - All commands
 
-🔔 Alerts are sent only when conditions you selected are met — no spam.
-
-<b>To get started:</b>
-1. Go to crypto-insights-52.preview.emergentagent.com
-2. Track a token or wallet
-3. Create an alert
-
-Once alerts are active, notifications will appear here automatically.
-
-Type /help anytime for commands.`,
+No spam — only valuable signals.`,
         { parseMode: 'HTML' }
       );
+      
+      console.log(`[TG Polling] Registered chatId ${chatId} for Connections alerts`);
     }
     // Handle /link FOMO-XXXX (D1 Signals linking)
     else if (text.startsWith('/link ')) {
