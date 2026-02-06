@@ -46,6 +46,7 @@ import {
 import { Button } from '../../components/ui/button';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { InfoTooltip, ADMIN_TOOLTIPS } from '../../components/admin/InfoTooltip';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
 
