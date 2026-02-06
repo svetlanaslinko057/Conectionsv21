@@ -84,6 +84,13 @@ const TelegramConnectionSchema = new Schema<ITelegramConnection>(
       cooldown: { type: Boolean, default: false },       // cooldownAlerts OFF
       highRisk: { type: Boolean, default: false },       // riskAlerts OFF
     },
+    // Phase 2.3 - Connections Preferences (Influencer alerts)
+    connectionsPreferences: {
+      enabled: { type: Boolean, default: true },           // ON by default
+      earlyBreakout: { type: Boolean, default: true },     // EARLY_BREAKOUT ON
+      strongAcceleration: { type: Boolean, default: true }, // STRONG_ACCELERATION ON
+      trendReversal: { type: Boolean, default: true },     // TREND_REVERSAL ON
+    },
   },
   {
     timestamps: true,
