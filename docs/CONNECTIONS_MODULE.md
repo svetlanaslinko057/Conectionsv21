@@ -943,6 +943,376 @@ curl -X POST http://localhost:8001/api/admin/auth/login \
 
 ---
 
-*Документация создана: 2026-02-06*
-*Версия модуля: 1.0.0*
+# 11. Telegram Notifications (Phase 2.3)
+
+## 11.1 Концепция
+
+Telegram интеграция для доставки алертов реализована по принципу:
+
+> **Платформа управляет ботом** — все настройки на сайте, бот только принимает сообщения.
+
+### Ключевые принципы:
+
+| Принцип | Описание |
+|---------|----------|
+| **Один бот** | Используется существующий бот `@t_fomo_bot` |
+| **Платформа = мозг** | Все решения (что/кому/когда) принимает платформа |
+| **Бот = receiver** | Бот только отправляет сообщения, никакой бизнес-логики |
+| **Настройки на сайте** | Пользователь управляет алертами через Admin UI или веб |
+| **Mute в боте** | Единственное, что можно в боте — выключить алерты командой |
+
+## 11.2 Архитектура
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         PLATFORM (Brain)                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────┐    ┌─────────────┐    ┌──────────────────┐   │
+│  │   Alerts    │───▶│ Dispatcher  │───▶│ Telegram         │   │
+│  │   Engine    │    │ (policy +   │    │ Transport        │   │
+│  │             │    │  cooldown)  │    │                  │   │
+│  └─────────────┘    └─────────────┘    └────────┬─────────┘   │
+│                            │                     │             │
+│                            ▼                     │             │
+│                     ┌─────────────┐              │             │
+│                     │  Settings   │              │             │
+│                     │  Store      │              │             │
+│                     │  (MongoDB)  │              │             │
+│                     └─────────────┘              │             │
+└─────────────────────────────────────────────────┼─────────────┘
+                                                  │
+                                                  ▼
+                                    ┌─────────────────────────┐
+                                    │   Telegram Bot API      │
+                                    │   @t_fomo_bot           │
+                                    └─────────────────────────┘
+                                                  │
+                     ┌────────────────────────────┼────────────────────────────┐
+                     │                            │                            │
+                     ▼                            ▼                            ▼
+              ┌─────────────┐             ┌─────────────┐             ┌─────────────┐
+              │  User 1     │             │  User 2     │             │  Admin      │
+              │  (chatId)   │             │  (chatId)   │             │  Channel    │
+              └─────────────┘             └─────────────┘             └─────────────┘
+```
+
+## 11.3 Структура файлов
+
+```
+backend/src/
+├── modules/connections/notifications/
+│   ├── index.ts                    # Export all
+│   ├── types.ts                    # TypeScript types
+│   ├── templates.ts                # Message templates
+│   ├── telegram.transport.ts       # Telegram API wrapper
+│   ├── settings.store.ts           # MongoDB settings
+│   ├── delivery.store.ts           # Delivery history
+│   ├── dispatcher.service.ts       # Core logic
+│   └── admin.routes.ts             # Admin API
+│
+├── telegram-polling.worker.ts      # Bot commands handler
+│
+└── core/notifications/
+    └── telegram.service.ts         # Shared telegram service
+                                    # + TelegramConnectionModel
+```
+
+## 11.4 Модель данных
+
+### TelegramConnectionModel
+
+```typescript
+interface ITelegramConnection {
+  userId: string;
+  chatId: string;               // Telegram chat ID
+  username?: string;
+  firstName?: string;
+  isActive: boolean;
+  connectedAt: Date;
+  
+  // Twitter/Parser alerts (existing)
+  eventPreferences: {
+    sessionOk: boolean;         // Session status alerts
+    sessionStale: boolean;
+    sessionInvalid: boolean;
+    parseCompleted: boolean;
+    parseAborted: boolean;
+    cooldown: boolean;
+    highRisk: boolean;
+  };
+  
+  // Connections alerts (Phase 2.3)
+  connectionsPreferences: {
+    enabled: boolean;           // Global on/off
+    earlyBreakout: boolean;     // Future: per-type control
+    strongAcceleration: boolean;
+    trendReversal: boolean;
+  };
+}
+```
+
+### ConnectionsTelegramSettings (Admin)
+
+```typescript
+interface TelegramDeliverySettings {
+  enabled: boolean;             // Global delivery on/off
+  preview_only: boolean;        // Log but don't send
+  chat_id: string;              // Optional admin channel
+  
+  cooldown_hours: {
+    EARLY_BREAKOUT: 24,
+    STRONG_ACCELERATION: 12,
+    TREND_REVERSAL: 12,
+    TEST: 0
+  };
+  
+  type_enabled: {
+    EARLY_BREAKOUT: true,
+    STRONG_ACCELERATION: true,
+    TREND_REVERSAL: true,
+    TEST: true
+  };
+}
+```
+
+## 11.5 Telegram Bot Commands
+
+### Общие команды
+
+| Команда | Описание |
+|---------|----------|
+| `/start` | Подписка на алерты + welcome message |
+| `/alerts` | **Единое меню** управления всеми алертами |
+| `/status` | Статус подключения |
+| `/help` | Справка по командам |
+| `/disconnect` | Отключить ВСЕ алерты |
+
+### Connections алерты
+
+| Команда | Описание |
+|---------|----------|
+| `/connections` | Статус Connections алертов |
+| `/connections on` | Включить Connections алерты |
+| `/connections off` | Выключить Connections алерты |
+
+### Twitter/Parser алерты
+
+| Команда | Описание |
+|---------|----------|
+| `/twitter` | Статус Twitter алертов |
+| `/twitter on` | Включить Twitter алерты |
+| `/twitter off` | Выключить Twitter алерты |
+
+### Пример `/alerts` output
+
+```
+⚙️ Alert Settings
+
+📊 Connections (Influencer)
+Status: 🟢 ON
+• Early Breakout, Acceleration, Reversal
+→ /connections on|off
+
+🐦 Twitter / Parser
+Status: 🟢 ON
+• Session alerts: ✅
+• Parse alerts: ✅
+→ /twitter on|off
+
+Quick actions:
+/connections off - Mute influencer alerts
+/twitter off - Mute twitter alerts
+/disconnect - Stop ALL alerts
+```
+
+## 11.6 Типы сообщений
+
+### 🚀 EARLY_BREAKOUT
+
+```
+🚀 EARLY BREAKOUT
+
+@username
+
+Аккаунт показывает ранний рост влияния, который рынок ещё не заметил.
+
+• Influence: 750
+• Acceleration: +45%
+• Profile: Influencer
+• Risk: Low
+
+Сигнал основан на устойчивом росте и положительной динамике.
+
+🔗 View details:
+https://site.com/connections/account_id
+```
+
+### 📈 STRONG_ACCELERATION
+
+```
+📈 STRONG ACCELERATION
+
+@username
+
+Резкое ускорение роста влияния за короткий период.
+
+• Influence: 620
+• Velocity: +15/day
+• Acceleration: +38%
+• Trend: GROWING
+
+Динамика усиливается, возможен переход в breakout.
+
+🔗 View trend:
+https://site.com/connections/account_id
+```
+
+### 🔄 TREND_REVERSAL
+
+```
+🔄 TREND CHANGE
+
+@username
+
+Изменение тренда влияния.
+
+• Previous: GROWING
+• Current: COOLING
+• Influence: 580
+
+Динамика аккаунта изменилась — рекомендуется переоценка.
+
+🔗 View analysis:
+https://site.com/connections/account_id
+```
+
+### 🧪 TEST
+
+```
+🧪 TEST ALERT
+
+This is a test notification from Connections module.
+
+If you see this message — Telegram delivery is configured correctly.
+No real signals were used.
+```
+
+## 11.7 Admin API
+
+### Settings
+
+```bash
+# Get settings
+GET /api/admin/connections/telegram/settings
+
+# Update settings
+PATCH /api/admin/connections/telegram/settings
+{
+  "enabled": true,
+  "preview_only": false,
+  "chat_id": "-1001234567890"
+}
+```
+
+### Actions
+
+```bash
+# Send test message to all subscribers
+POST /api/admin/connections/telegram/test
+
+# Dispatch pending alerts
+POST /api/admin/connections/telegram/dispatch
+{
+  "dryRun": false,
+  "limit": 50
+}
+```
+
+### Analytics
+
+```bash
+# Get delivery history
+GET /api/admin/connections/telegram/history?limit=50
+
+# Get stats (last 24h)
+GET /api/admin/connections/telegram/stats?hours=24
+```
+
+## 11.8 Логика доставки (Dispatcher)
+
+### Flow
+
+```
+1. Admin включает Telegram Delivery (enabled=true, preview_only=false)
+       ↓
+2. Alerts Engine создаёт alert со статусом PREVIEW
+       ↓
+3. Dispatcher проверяет policy:
+   - Global enabled? → если нет → skip
+   - Type enabled? → если нет → skip
+   - Cooldown пройден? → если нет → skip
+       ↓
+4. Dispatcher получает всех подписчиков:
+   - isActive=true
+   - connectionsPreferences.enabled ≠ false
+       ↓
+5. Отправка всем подписчикам + admin channel (если задан)
+       ↓
+6. Запись в delivery history
+```
+
+### Cooldown
+
+| Тип алерта | Cooldown |
+|------------|----------|
+| EARLY_BREAKOUT | 24 часа |
+| STRONG_ACCELERATION | 12 часов |
+| TREND_REVERSAL | 12 часов |
+| TEST | 0 (без cooldown) |
+
+Cooldown применяется **per account** — один и тот же аккаунт не может генерировать алерты чаще cooldown.
+
+## 11.9 Admin UI
+
+Таб **Telegram** в `/admin/connections`:
+
+- **Global toggles**: Telegram Delivery ON/OFF, Preview Only
+- **Chat ID**: Опциональный admin канал
+- **Alert types**: Включение/выключение по типам + cooldown
+- **Actions**: Send Test Message, Dispatch Pending
+- **Stats**: Total/Sent/Skipped/Failed за 24h
+- **History**: Таблица последних доставок
+
+## 11.10 Environment Variables
+
+```bash
+# backend/.env
+
+# Telegram Bot Token (existing bot)
+TELEGRAM_BOT_TOKEN=8262803410:AAEO_SSg4VYEr0wb6rZfkPZm34qB-oKaoIk
+
+# Public URL for links in messages
+PUBLIC_BASE_URL=https://svetlana-connect.preview.emergentagent.com
+```
+
+## 11.11 Будущие улучшения
+
+### Phase 2.3+ (запланировано)
+
+- [ ] **Web UI для подписки** — колокольчики на странице Connections
+- [ ] **Per-type подписка** — пользователь выбирает типы алертов на вебе
+- [ ] **Inline buttons** — кнопки в Telegram для быстрых действий
+- [ ] **User-specific cooldown** — разный cooldown для разных пользователей
+
+### НЕ планируется
+
+- ❌ Настройки внутри бота (команды `/settings`, `/mute types`)
+- ❌ Сложная логика в боте
+- ❌ Отдельный бот для Connections
+
+---
+
+*Документация Phase 2.3 создана: 2026-02-06*
+*Версия: 1.0.0*
 *Автор: Emergent AI Assistant*
