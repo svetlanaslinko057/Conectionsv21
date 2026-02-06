@@ -215,6 +215,12 @@ Something went wrong. Please try again later.`,
 /link FOMO-XXXX - Link your account (get code from website)
 /status - Check your connection status
 /disconnect - Stop receiving alerts
+
+<b>Connections (Influencer Alerts):</b>
+/connections - Show Connections alerts status
+/connections on - Enable Connections alerts
+/connections off - Disable Connections alerts
+
 /help - Show this message
 
 <b>How it works:</b>
