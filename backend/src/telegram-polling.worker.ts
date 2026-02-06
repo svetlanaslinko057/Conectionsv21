@@ -130,10 +130,10 @@ Or type /start for more information.`,
         );
       }
     }
-    // Handle plain /start - register for Connections alerts
+    // Handle plain /start - register for alerts
     else if (text === '/start') {
       // Create/update connection for this chatId
-      // This enables user to receive Connections alerts immediately
+      // This enables user to receive alerts immediately
       await telegramService.TelegramConnectionModel.updateOne(
         { chatId },
         {
@@ -155,22 +155,28 @@ Or type /start for more information.`,
         chatId,
         `👋 <b>Welcome to FOMO Alerts</b>
 
-You're now subscribed to receive alerts including:
+You're now subscribed to receive alerts:
+
+<b>📊 Connections (Influencer)</b>
 • 🚀 Early Breakout signals
-• 📈 Strong Acceleration
+• 📈 Strong Acceleration  
 • 🔄 Trend Changes
 
+<b>🐦 Twitter / Parser</b>
+• Session status alerts
+• Parse completion/abort
+
 <b>Commands:</b>
-/connections - Check Connections alerts status
-/connections off - Mute Connections alerts
-/status - Check connection status
+/alerts - Manage all alert settings ⚙️
+/connections off - Mute influencer alerts
+/twitter off - Mute twitter alerts
 /help - All commands
 
 No spam — only valuable signals.`,
         { parseMode: 'HTML' }
       );
       
-      console.log(`[TG Polling] Registered chatId ${chatId} for Connections alerts`);
+      console.log(`[TG Polling] Registered chatId ${chatId} for alerts`);
     }
     // Handle /link FOMO-XXXX (D1 Signals linking)
     else if (text.startsWith('/link ')) {
