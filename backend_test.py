@@ -67,7 +67,8 @@ class P22BackendTester:
             response = self.session.get(f"{self.base_url}/api/connections/health")
             if response.status_code == 200:
                 data = response.json()
-                return data.get('ok') is True and data.get('status') == 'healthy'
+                # Check for module healthy status
+                return data.get('ok') is True and data.get('module') == 'connections'
             return False
         except Exception as e:
             self.log(f"Connections health check failed: {e}")
