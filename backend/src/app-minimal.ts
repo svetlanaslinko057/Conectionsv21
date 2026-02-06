@@ -90,5 +90,29 @@ export function buildMinimalApp(): FastifyInstance {
     }
   });
 
+  // Register Telegram Notifications (Phase 2.3)
+  app.register(async (fastify) => {
+    console.log('[BOOT] Registering Telegram notifications...');
+    try {
+      const db = getMongoDb();
+      const botToken = process.env.TELEGRAM_BOT_TOKEN || '';
+      const publicBaseUrl = process.env.PUBLIC_BASE_URL || 'http://localhost:3000';
+      
+      const telegram = new TelegramTransport({ botToken });
+      const dispatcher = new ConnectionsTelegramDispatcher(db, telegram, publicBaseUrl);
+      
+      registerConnectionsTelegramAdminRoutes(fastify, dispatcher);
+      console.log('[BOOT] Telegram notifications registered');
+      
+      if (botToken) {
+        console.log('[BOOT] Telegram bot token configured');
+      } else {
+        console.log('[BOOT] WARNING: TELEGRAM_BOT_TOKEN not set');
+      }
+    } catch (err) {
+      console.error('[BOOT] Failed to register Telegram notifications:', err);
+    }
+  });
+
   return app;
 }
